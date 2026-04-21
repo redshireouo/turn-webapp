@@ -4,6 +4,9 @@ import VideoPreview from "./components/VideoPreview";
 import ResultPanel from "./components/ResultPanel";
 
 function App() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  console.log("API_BASE_URL =", API_BASE_URL);
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -26,13 +29,15 @@ function App() {
     formData.append("video", selectedFile);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/predict", {
+      const response = await fetch(`${API_BASE_URL}/predict`, {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("後端回傳失敗");
+        const errorText = await response.text();
+        console.error("後端錯誤內容：", errorText);
+        throw new Error(`後端回傳失敗：${response.status}`);
       }
 
       const data = await response.json();
@@ -40,7 +45,7 @@ function App() {
       setResult(data);
     } catch (error) {
       console.error("分析失敗：", error);
-      alert("分析失敗，請確認 backend 有啟動");
+      alert("分析失敗，請確認 backend 有啟動，或稍等 Render 冷啟動完成");
     } finally {
       setIsAnalyzing(false);
     }
