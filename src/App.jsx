@@ -43,6 +43,9 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/predict`, {
         method: "POST",
+        headers: {
+          "ngrok-skip-browser-warning": "1",
+        },
         body: formData,
       });
 
@@ -137,6 +140,9 @@ function App() {
       try {
         const response = await fetch(`${API_BASE_URL}/predict-frame`, {
           method: "POST",
+          headers: {
+            "ngrok-skip-browser-warning": "1",
+          },
           body: formData,
         });
 
