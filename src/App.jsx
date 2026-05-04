@@ -17,6 +17,9 @@ function App() {
   const lastAnnouncementRef = useRef("");
   const lastAnnouncementTimeRef = useRef(0);
 
+  const clearBoxTimerRef = useRef(null);
+  const requestIdRef = useRef(0);   
+  
   const startCamera = async () => {
     try {
       setPermissionError("");
@@ -46,6 +49,11 @@ function App() {
       intervalRef.current = null;
     }
 
+    if (clearBoxTimerRef.current) {
+      clearTimeout(clearBoxTimerRef.current);
+      clearBoxTimerRef.current = null;
+    }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -73,6 +81,8 @@ function App() {
 
     setIsAnalyzing(true);
 
+    const currentRequestId = ++requestIdRef.current;
+
     canvas.toBlob(async (blob) => {
       if (!blob) {
         setIsAnalyzing(false);
@@ -98,14 +108,29 @@ function App() {
         }
 
         const data = await response.json();
-        console.log("predict-frame 回傳：", data);
+
+        // 如果這不是最新的一次請求結果，就丟掉
+        if (currentRequestId !== requestIdRef.current) return;
+
         setResult(data);
+
+        // 舊框不要留太久，避免畫面移動後嚴重錯位
+        if (clearBoxTimerRef.current) {
+          clearTimeout(clearBoxTimerRef.current);
+        }
+
+        clearBoxTimerRef.current = setTimeout(() => {
+          setResult((prev) => {
+            if (!prev) return prev;
+            return { ...prev, detections: [] };
+          });
+        }, 300);
       } catch (error) {
         console.error("影格分析失敗：", error);
       } finally {
         setIsAnalyzing(false);
       }
-    }, "image/jpeg", 0.9);
+    }, "image/jpeg", 0.8);
   };
 
   const drawDetections = () => {
@@ -165,7 +190,7 @@ function App() {
 
     intervalRef.current = setInterval(() => {
       captureAndAnalyzeFrame();
-    }, 1000);
+    }, 500);
 
     return () => {
       if (intervalRef.current) {
